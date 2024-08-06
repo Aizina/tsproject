@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commentary</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header class="header"></header>
+    <section class="section">
+        <aside class="aside"></aside>
+        <div class="main-page">
+            <div class="content">
+                <div class="content_divs hide"></div>
+                <div class="content_divs hide"></div>
+                <div class="content_divs hide"></div>
+                <div class="content_divs hide"></div>
+                <div class="content_divs hide"></div>
+                <div class="content_divs hide"></div>
+                <div class="content_divs"></div>
+                <div class="content_divs"></div>
+                <div class="content_divs_big"></div>
+            </div>
+            <div class="comments-section">
+                <div class="comments-header">
+                    <h2 class="comment-heading">Комментарии <span id ="comment-amount">(80)</span></h2>
+                    <div class="sort-div">
+                        <div class="dropdown">
+                            <div id="selected-option" class="selected-option">По количеству оценок<span></div>
+                            <div id="options" class="options">
+                                <div class="option" data-value="rating">По количеству оценок</div>
+                                <div class="option" data-value="date">По дате</div>
+                                <div class="option" data-value="relevance">По актуальности</div>
+                                <div class="option" data-value="replies">По количеству ответов</div>
+                            </div>
+                        </div>
+                        <button class="sort-button"></button>     
+                    </div>
+
+                    <div class="favorite-div">
+                        <button id="favorites-toggle">Избранное</button>
+                        <span class="heart-icon">&#10084;</span>
+                    </div>
+
+                </div>
+                <div class="comment-div" id="main-comment-div">
+                    <img class="user-avatar" id="main-user-avatar" alt="User Avatar">
+                    <p class="user-name" id="main-user-name"></p>
+                    <div id="char-count">Макс. 1000 символов</div>
+                    <div id="char-warning" style="color: red; display: none;">Слишком длинное сообщение</div>
+                    <div class="comment-form">
+                        <textarea id="new-comment-text" placeholder="Введите текст сообщения..."></textarea>
+                    </div>
+                    <button id="submit-comment">Отправить</button>
+                </div>
+                <div id="comments-list">
+                    <!-- Список комментариев будет здесь -->
+                </div>
+
+                <div class="comment-template" style="display:none;">
+                    <div class="comment-div">
+                        <img class="user-avatar" alt="User Avatar"> 
+                        <div class="comment-name-date">
+                            <p class="user-name"></p>
+                            <p class="parent-comment-name"></p>
+                            <p class="comment-date"></p>
+                        </div>
+                        <p class="comment-text"></p>
+                        <div class="comment-buttons">
+                            <button class="reply-button"><img src="images/reply-message.png" class="reply-icon">Ответить</button>
+                            <button class="favorite-button"> &#9825; В избранное</button>
+                            <div class="vote-buttons">
+                                <button class="upvote-button">+</button>
+                                <span class="vote-rating"></span>
+                                <button class="downvote-button">-</button> 
+                            </div>        
+                        </div>
+                        <div class="reply-form" style="display:none;">
+                            <textarea class="reply-text" id="reply-text" placeholder="Введите текст ответа..."></textarea>
+                            <button class="submit-reply">Отправить</button>
+                        </div>
+                        <div class="replies-list">
+                            <!-- Ответы на комментарии будут здесь -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reply-template" style="display:none;"> 
+                    <div class="reply-div">
+                        <img class="user-avatar" alt="User Avatar">
+                        <div class="comment-name-date">
+                            <p class="user-name"></p>
+                            <p class="comment-date"></p>
+                            <div class="parent-comment-with-icon">
+                                <img src="images/reply-message.png" class="reply-icon"><span class="parent-comment-name"></span>
+                            </div>
+                        </div>
+                        <p class="comment-text"></p>
+                        <div class="reply-buttons">
+                            <div class="vote-buttons">
+                                <button class="upvote-button">+</button>
+                                <span class="vote-rating"></span>
+                                <button class="downvote-button">-</button> 
+                            </div>
+                            <button class="favorite-button">Добавить в избранное</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button id="clear-storage">Очистить все комментарии</button>
+    </section>
+</body>
+</html>
