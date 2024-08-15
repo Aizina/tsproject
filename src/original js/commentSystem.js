@@ -1,37 +1,7 @@
+import { User } from 'user.js';
+import { Comment } from 'comment.js';
 
-
-class User {
-    async fetchRandomUser() {
-        try {
-            const response = await fetch('https://randomuser.me/api/');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            return data.results[0];
-        } catch (error) {
-            console.error('Error fetching random user:', error);
-            return null;
-        }
-    }
-}
-
-class Comment {
-    constructor({ avatar, name, text, date, id, votes, favorites, parentId, replyNumber, voteColor = 'black' }) {
-        this.avatar = avatar;
-        this.name = name;
-        this.text = text;
-        this.date = date instanceof Date ? date : new Date(date);
-        this.id = id;
-        this.votes = votes;
-        this.favorites = favorites;
-        this.parentId = parentId;
-        this.replyNumber = replyNumber;
-        this.voteColor = voteColor;
-    }
-}
-
-class CommentSystem {
+export class CommentSystem {
     constructor() {
         this.user = new User();
         this.comments = this.loadCommentsFromStorage();
@@ -53,7 +23,7 @@ class CommentSystem {
         const comments = JSON.parse(localStorage.getItem('comments')) || [];
         const commentCount = comments.length;
         commentAmountElement.textContent = `(${commentCount})`;
-      };
+    };
 
     async loadRandomUser() {
         this.randomUser = await this.user.fetchRandomUser();
@@ -61,8 +31,7 @@ class CommentSystem {
             const userAvatar = document.getElementById('main-user-avatar');
             userAvatar.src = this.randomUser.picture.thumbnail;
             const mainUserName = document.getElementById('main-user-name');
-            //mainUserName.textContent = `${this.randomUser.name.first} ${this.randomUser.name.last}`;
-            mainUserName.textContent = this.randomUser.name.first + ' '+ this.randomUser.name.last;
+            mainUserName.textContent = this.randomUser.name.first + ' ' + this.randomUser.name.last;
         } else {
             alert("Не удалось загрузить данные пользователя. Пожалуйста, перезагрузите страницу.");
         }
@@ -85,7 +54,7 @@ class CommentSystem {
 
         const newComment = new Comment({
             avatar: this.randomUser.picture.thumbnail,
-            name:  this.randomUser.name.first + ' '+ this.randomUser.name.last,
+            name: this.randomUser.name.first + ' ' + this.randomUser.name.last,
             text: commentText,
             date: new Date(),
             id: Date.now(),
@@ -156,7 +125,6 @@ class CommentSystem {
             document.querySelector(`.comment-template[data-id="${comment.id}"] .replies-list`).innerHTML = "";
         } else {
             const parentCommentElement = document.querySelector(`.comment-template[data-id="${comment.parentId}"]`);
-            console.log(`Looking for parent comment with id ${comment.parentId}`);
             if (parentCommentElement) {
                 const parentCommentElementName = parentCommentElement.querySelector('.user-name')?.textContent;
                 const parentCommentNameElement = template.querySelector('.parent-comment-name');
@@ -215,7 +183,7 @@ class CommentSystem {
 
         const newReply = new Comment({
             avatar: this.randomUser.picture.thumbnail,
-            name:  this.randomUser.name.first + ' '+ this.randomUser.name.last,
+            name: this.randomUser.name.first + ' ' + this.randomUser.name.last,
             text: replyText,
             date: new Date(),
             id: Date.now(),
@@ -237,183 +205,17 @@ class CommentSystem {
         const charCount = commentText.length;
         const charCountDisplay = document.getElementById('char-count');
         const charWarning = document.getElementById('char-warning');
-        const submitButton = document.getElementById('submit-comment');
+        const submitButton = document.querySelector('button.submit-button');
 
-        charCountDisplay.textContent = `${charCount} / 1000`;
+        charCountDisplay.textContent = `${charCount}/1000`;
 
         if (charCount > 1000) {
             charWarning.style.display = 'block';
             submitButton.disabled = true;
         } else {
             charWarning.style.display = 'none';
-            submitButton.style.background = '#ABD873';
-            submitButton.style.opacity = '1';
             submitButton.disabled = false;
         }
-    }
-
-    upVote(id) {
-        let comment = this.comments.find(c => c.id === id);
-
-        if (comment) {
-            comment.votes++;
-            comment.voteColor = comment.votes > 0 ? '#8AC540' : comment.votes < 0 ? '#FF0000' : 'black';
-            this.saveCommentsToStorage();
-            this.refreshComments();
-        } else {
-            console.error(`Comment with id ${id} not found for upvote.`);
-        }
-    }
-
-    downVote(id) {
-        let comment = this.comments.find(c => c.id === id);
-        if (comment) {
-            comment.votes--;
-            comment.voteColor = comment.votes > 0 ? '#8AC540' : comment.votes < 0 ? '#FF0000' : 'black';
-            this.saveCommentsToStorage();
-            this.refreshComments();
-        } else {
-            console.error(`Comment with id ${id} not found for downvote.`);
-        }
-    }
-
-    toggleFavorite(id) {
-        const comment = this.comments.find(c => c.id === id);
-        if (comment) {
-            comment.favorites = !comment.favorites;
-            this.saveCommentsToStorage();
-            this.refreshComments();
-        } else {
-            console.error(`Comment with id ${id} not found for favorite toggle.`);
-        }
-    }
-
-
-
-sortComments(field, order) {
-
-    this.comments.sort((a, b) => {
-        if (field === 'date' || field === "relevance") {
-            return order === 'asc' ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date);
-        }
-        if (field === 'rating') {
-            return order === 'asc' ? a.votes - b.votes : b.votes - a.votes;
-        }
-        if (field === 'replies') {
-            const repliesA = this.comments.filter(comment => comment.parentId === a.id).length;
-            const repliesB = this.comments.filter(comment => comment.parentId === b.id).length;
-            return order === 'asc' ? repliesA - repliesB : repliesB - repliesA;
-        }
-        return 0;
-    });
-
-    this.refreshComments();
-}
-
-    filterFavorites() {
-        const favorites = this.comments.filter(comment => comment.favorites);
-        document.getElementById('comments-list').innerHTML = '';
-        favorites.forEach(comment => this.displayComment(comment));
-    }
-
-    async refreshComments() {
-        document.getElementById('comments-list').innerHTML = '';
-        const parentComments = this.comments.filter(comment => comment.parentId === null);
-        const replies = this.comments.filter(comment => comment.parentId !== null);
-
-        parentComments.forEach(parent => {
-            this.displayComment(parent);
-            const childComments = replies.filter(reply => reply.parentId === parent.id);
-            childComments.forEach(reply => this.displayComment(reply));
-        });
-    }
-
-    formatDate(date) {
-        const d = new Date(date);
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0'); // Месяцы начинаются с 0
-        const hours = String(d.getHours()).padStart(2, '0');
-        const minutes = String(d.getMinutes()).padStart(2, '0');
-        return `${day}.${month} ${hours}:${minutes}`;
-    }
-
-    addSortEventListeners() {
-        const selectedOptionElement = document.getElementById('selected-option');
-        const optionsContainer = document.getElementById('options');
-        const options = document.querySelectorAll('.option');
-        const sortButtonElement = document.querySelector('.sort-button');
-        const favoritesToggleElement = document.getElementById('favorites-toggle');
-    
-        if (selectedOptionElement && optionsContainer && options.length) {
-            selectedOptionElement.addEventListener('click', () => {
-                optionsContainer.style.display = optionsContainer.style.display === 'block' ? 'none' : 'block';
-            });
-    
-            options.forEach(option => {
-                option.addEventListener('click', () => {
-                    const selectedValue = option.getAttribute('data-value');
-                    selectedOptionElement.textContent = option.textContent;
-                    optionsContainer.style.display = 'none';
-                    this.currentSort.field = selectedValue;
-                    this.sortComments(this.currentSort.field, this.currentSort.order);
-                    options.forEach(opt => opt.classList.remove('selected'));
-                    option.classList.add('selected');
-                });
-            });
-    
-            document.addEventListener('click', (event) => {
-                if (!document.querySelector('.dropdown').contains(event.target)) {
-                    optionsContainer.style.display = 'none';
-                }
-            });
-        } else {
-            console.error("Dropdown elements not found.");
-        }
-    
-        if (sortButtonElement) {
-            sortButtonElement.addEventListener('click', () => {
-                if (sortButtonElement.classList.contains('asc')) {
-                    this.currentSort.order = 'asc';
-                    this.sortComments(this.currentSort.field, this.currentSort.order);
-                    sortButtonElement.classList.remove('asc');
-                    sortButtonElement.classList.add('desc');
-                } else {
-                    this.currentSort.order = 'desc';
-                    this.sortComments(this.currentSort.field, this.currentSort.order);
-                    sortButtonElement.classList.remove('desc');
-                    sortButtonElement.classList.add('asc');
-                }
-            });
-        } else {
-            console.error("Element '.sort-button' not found.");
-        }
-    
-        if (favoritesToggleElement) {
-            favoritesToggleElement.addEventListener('click', () => this.filterFavorites());
-        } else {
-            console.error("Element 'favorites-toggle' not found.");
-        }
-    }
-    
-
-    async init() {
-        await this.loadRandomUser();
-        document.getElementById('submit-comment').addEventListener('click', () => this.addComment());
-        document.getElementById('submit-comment').addEventListener('click', () => this.updateCommentCount());
-        document.getElementById('new-comment-text').addEventListener('input', () => {
-            this.updateCharCount();
-            this.adjustTextareaHeight();
-        });
-        document.getElementById('clear-storage').addEventListener('click', () => {
-            localStorage.removeItem('comments');
-            this.comments = [];
-            this.refreshComments();
-            this.updateCommentCount();
-        });
-
-        this.addSortEventListeners();
-        await this.loadComments();
-        this.updateCommentCount(); 
     }
 
     adjustTextareaHeight() {
@@ -421,7 +223,100 @@ sortComments(field, order) {
         textarea.style.height = 'auto';
         textarea.style.height = `${textarea.scrollHeight}px`;
     }
-}
 
-const commentSystem = new CommentSystem();
-commentSystem.init();
+    async sortComments(field, order = 'asc') {
+        if (field === 'date') {
+            this.comments.sort((a, b) => order === 'asc' ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date));
+        } else if (field === 'votes') {
+            this.comments.sort((a, b) => order === 'asc' ? a.votes - b.votes : b.votes - a.votes);
+        }
+        this.currentSort = { field, order };
+        await this.refreshComments();
+    }
+
+    async upVote(id) {
+        const comment = this.comments.find(comment => comment.id === id);
+        if (comment) {
+            comment.votes += 1;
+            if (comment.votes > 0) {
+                comment.voteColor = 'green';
+            } else if (comment.votes === 0) {
+                comment.voteColor = 'black';
+            } else {
+                comment.voteColor = 'red';
+            }
+            this.saveComment(comment);
+            await this.refreshComments();
+        }
+    }
+
+    async downVote(id) {
+        const comment = this.comments.find(comment => comment.id === id);
+        if (comment) {
+            comment.votes -= 1;
+            if (comment.votes > 0) {
+                comment.voteColor = 'green';
+            } else if (comment.votes === 0) {
+                comment.voteColor = 'black';
+            } else {
+                comment.voteColor = 'red';
+            }
+            this.saveComment(comment);
+            await this.refreshComments();
+        }
+    }
+
+    async toggleFavorite(id) {
+        const comment = this.comments.find(comment => comment.id === id);
+        if (comment) {
+            comment.favorites = !comment.favorites;
+            this.saveComment(comment);
+            await this.refreshComments();
+        }
+    }
+
+    formatDate(date) {
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+
+        if (diffInSeconds < 60) {
+            return 'Только что';
+        } else if (diffInSeconds < 3600) {
+            const minutes = Math.floor(diffInSeconds / 60);
+            return `${minutes} мин. назад`;
+        } else if (diffInSeconds < 86400) {
+            const hours = Math.floor(diffInSeconds / 3600);
+            return `${hours} час. назад`;
+        } else {
+            return date.toLocaleDateString();
+        }
+    }
+
+    async refreshComments() {
+        await this.loadComments();
+        this.updateCommentCount();
+    }
+
+    filterComments(filter) {
+        const comments = JSON.parse(localStorage.getItem('comments')) || [];
+        let filteredComments;
+
+        switch (filter) {
+            case 'favorites':
+                filteredComments = comments.filter(comment => comment.favorites);
+                break;
+            case 'high-rating':
+                filteredComments = comments.filter(comment => comment.votes > 0);
+                break;
+            case 'low-rating':
+                filteredComments = comments.filter(comment => comment.votes < 0);
+                break;
+            default:
+                filteredComments = comments;
+                break;
+        }
+
+        this.comments = filteredComments.map(comment => new Comment(comment));
+        this.refreshComments();
+    }
+}
