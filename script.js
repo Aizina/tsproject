@@ -1,5 +1,3 @@
-
-
 class User {
     async fetchRandomUser() {
         try {
@@ -290,25 +288,25 @@ class CommentSystem {
 
 
 
-sortComments(field, order) {
+    sortComments(field, order) {
 
-    this.comments.sort((a, b) => {
-        if (field === 'date' || field === "relevance") {
-            return order === 'asc' ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date);
-        }
-        if (field === 'rating') {
-            return order === 'asc' ? a.votes - b.votes : b.votes - a.votes;
-        }
-        if (field === 'replies') {
-            const repliesA = this.comments.filter(comment => comment.parentId === a.id).length;
-            const repliesB = this.comments.filter(comment => comment.parentId === b.id).length;
-            return order === 'asc' ? repliesA - repliesB : repliesB - repliesA;
-        }
-        return 0;
-    });
+        this.comments.sort((a, b) => {
+            if (field === 'date' || field === "relevance") {
+                return order === 'asc' ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date);
+            }
+            if (field === 'rating') {
+                return order === 'asc' ? a.votes - b.votes : b.votes - a.votes;
+            }
+            if (field === 'replies') {
+                const repliesA = this.comments.filter(comment => comment.parentId === a.id).length;
+                const repliesB = this.comments.filter(comment => comment.parentId === b.id).length;
+                return order === 'asc' ? repliesA - repliesB : repliesB - repliesA;
+            }
+            return 0;
+        });
 
-    this.refreshComments();
-}
+        this.refreshComments();
+    }
 
     filterFavorites() {
         const favorites = this.comments.filter(comment => comment.favorites);

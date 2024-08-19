@@ -1,16 +1,17 @@
-import { User } from './user';
-import { Comment } from './comment';
+import { User } from './user.js';
+import { RandomUser } from './user.js';
+import { Comment } from './comment.js';
 
 interface SortOption {
-    field: 'date' | 'votes';
+    field: string;
     order: 'asc' | 'desc';
 }
 
 export class CommentSystem {
-    public user: User;
-    public comments: Comment[];
-    public currentSort: SortOption;
-    public randomUser: any | null;
+    user: User;
+    comments: Comment[];
+    currentSort: SortOption;
+    randomUser: RandomUser | null;
 
     constructor() {
         this.user = new User();
@@ -19,16 +20,16 @@ export class CommentSystem {
         this.randomUser = null;
     }
 
-    public loadCommentsFromStorage(): Comment[] {
+    loadCommentsFromStorage(): Comment[] {
         const comments = JSON.parse(localStorage.getItem('comments') || '[]');
-        return comments.map((comment: any) => new Comment(comment));
+        return comments.map((comment: Comment) => new Comment(comment));
     }
 
-    public saveCommentsToStorage(): void {
+    saveCommentsToStorage(): void {
         localStorage.setItem('comments', JSON.stringify(this.comments));
     }
 
-    public updateCommentCount(): void {
+    updateCommentCount(): void {
         const commentAmountElement = document.getElementById('comment-amount');
         const comments = JSON.parse(localStorage.getItem('comments') || '[]');
         const commentCount = comments.length;
@@ -37,32 +38,22 @@ export class CommentSystem {
         }
     }
 
-    public async loadRandomUser(): Promise<void> {
-        try {
-            this.randomUser = await this.user.fetchRandomUser();
-        } catch (error) {
-            console.error('Ошибка при загрузке пользователя:', error);
-            this.randomUser = null;
-        }
-
+    async loadRandomUser(): Promise<void> {
+        this.randomUser = await this.user.fetchRandomUser();
         if (this.randomUser) {
             const userAvatar = document.getElementById('main-user-avatar') as HTMLImageElement;
-            if (userAvatar) {
-                userAvatar.src = this.randomUser.picture?.thumbnail || '';
-            }
             const mainUserName = document.getElementById('main-user-name');
-            if (mainUserName) {
-                mainUserName.textContent = `${this.randomUser.name?.first || 'Неизвестный'} ${this.randomUser.name?.last || 'Пользователь'}`;
+            if (userAvatar && mainUserName) {
+                userAvatar.src = this.randomUser.picture.thumbnail;
+                mainUserName.textContent = `${this.randomUser.name.first} ${this.randomUser.name.last}`;
             }
         } else {
             alert("Не удалось загрузить данные пользователя. Пожалуйста, перезагрузите страницу.");
         }
     }
 
-    public async addComment(): Promise<void> {
+    async addComment(): Promise<void> {
         const commentTextElement = document.getElementById('new-comment-text') as HTMLTextAreaElement;
-        if (!commentTextElement) return;
-        
         const commentText = commentTextElement.value.trim();
         if (!commentText) {
             alert("Комментарий не может быть пустым.");
@@ -78,8 +69,8 @@ export class CommentSystem {
         }
 
         const newComment = new Comment({
-            avatar: this.randomUser.picture?.thumbnail || '',
-            name: `${this.randomUser.name?.first || 'Неизвестный'} ${this.randomUser.name?.last || 'Пользователь'}`,
+            avatar: this.randomUser.picture.thumbnail,
+            name: `${this.randomUser.name.first} ${this.randomUser.name.last}`,
             text: commentText,
             date: new Date(),
             id: Date.now(),
@@ -99,54 +90,48 @@ export class CommentSystem {
         await this.loadRandomUser();
     }
 
-    public saveComment(comment: Comment): void {
+    saveComment(comment: Comment): void {
         this.comments = this.comments.filter(c => c.id !== comment.id);
         this.comments.push(comment);
         this.saveCommentsToStorage();
     }
 
-    public async loadComments(): Promise<void> {
-        const commentsListElement = document.getElementById('comments-list');
-        if (commentsListElement) {
-            commentsListElement.innerHTML = '';
-            this.comments.forEach(comment => this.displayComment(comment));
-        }
+    async loadComments(): Promise<void> {
+        document.getElementById('comments-list')!.innerHTML = '';
+        this.comments.forEach(comment => this.displayComment(comment));
     }
 
-    public displayComment(comment: Comment): void {
+    displayComment(comment: Comment): void {
         const existingComment = document.querySelector(`.comment-template[data-id="${comment.id}"], .reply-template[data-id="${comment.id}"]`);
-        if (existingComment) return;
+        if (existingComment) {
+            return;
+        }
 
         const template = comment.parentId === null
-            ? (document.querySelector('.comment-template') as HTMLDivElement).cloneNode(true) as HTMLDivElement
-            : (document.querySelector('.reply-template') as HTMLDivElement).cloneNode(true) as HTMLDivElement;
+            ? document.querySelector('.comment-template')!.cloneNode(true) as HTMLElement
+            : document.querySelector('.reply-template')!.cloneNode(true) as HTMLElement;
 
         template.style.display = 'block';
         template.setAttribute('data-id', comment.id.toString());
         const userAvatar = template.querySelector('.user-avatar') as HTMLImageElement;
-        if (userAvatar) userAvatar.src = comment.avatar;
-
         const userName = template.querySelector('.user-name');
-        if (userName) userName.textContent = comment.name;
-
         const commentText = template.querySelector('.comment-text');
-        if (commentText) commentText.textContent = comment.text;
-
         const commentDate = template.querySelector('.comment-date');
-        if (commentDate) commentDate.textContent = this.formatDate(comment.date);
-
-        const voteRating = template.querySelector('.vote-rating') as HTMLElement | null;
-        if (voteRating) {
-            voteRating.textContent = comment.votes.toString();
-            voteRating.style.color = comment.voteColor || 'black';
-        }
-        
-
+        const voteRating = template.querySelector('.vote-rating');
         const upvoteButton = template.querySelector('.upvote-button');
-        if (upvoteButton) upvoteButton.addEventListener('click', () => this.upVote(comment.id));
-
         const downvoteButton = template.querySelector('.downvote-button');
-        if (downvoteButton) downvoteButton.addEventListener('click', () => this.downVote(comment.id));
+
+        if (userAvatar && userName && commentText && commentDate && voteRating && upvoteButton && downvoteButton) {
+            userAvatar.src = comment.avatar;
+            userName.textContent = comment.name;
+            commentText.textContent = comment.text;
+            commentDate.textContent = this.formatDate(comment.date);
+            const voteRating = document.querySelector('.vote-rating') as HTMLElement;
+            voteRating.style.color = comment.voteColor || 'black';
+            voteRating.textContent = comment.votes.toString();
+            upvoteButton.addEventListener('click', () => this.upVote(comment.id));
+            downvoteButton.addEventListener('click', () => this.downVote(comment.id));
+        }
 
         const favoriteButton = template.querySelector('.favorite-button');
         if (favoriteButton) {
@@ -164,42 +149,37 @@ export class CommentSystem {
             }
         }
 
-        const commentsList = document.getElementById('comments-list');
-        if (comment.parentId === null && commentsList) {
-            commentsList.appendChild(template);
-            const repliesList = template.querySelector('.replies-list');
-            if (repliesList) repliesList.innerHTML = "";
+        if (comment.parentId === null) {
+            document.getElementById('comments-list')!.appendChild(template);
+            document.querySelector(`.comment-template[data-id="${comment.id}"] .replies-list`)!.innerHTML = "";
         } else {
-            const parentCommentElement = document.querySelector(`.comment-template[data-id="${comment.parentId}"]`) as HTMLDivElement;
+            const parentCommentElement = document.querySelector(`.comment-template[data-id="${comment.parentId}"]`) as HTMLElement;
             if (parentCommentElement) {
-                const parentCommentName = parentCommentElement.querySelector('.user-name')?.textContent;
+                const parentCommentElementName = parentCommentElement.querySelector('.user-name')?.textContent;
                 const parentCommentNameElement = template.querySelector('.parent-comment-name');
+
                 if (parentCommentNameElement) {
-                    parentCommentNameElement.textContent = parentCommentName || '';
-                } else {
-                    console.error("Parent comment name element not found in the template.", template);
+                    parentCommentNameElement.textContent = parentCommentElementName || '';
                 }
 
-                const repliesList = parentCommentElement.querySelector('.replies-list') as HTMLElement | null;
+                const repliesList = parentCommentElement.querySelector('.replies-list') as HTMLElement;
                 if (repliesList) {
                     repliesList.appendChild(template);
-
+                    
                     if (replyButton) {
-                        (replyButton as HTMLElement).style.display = 'none'; // Hide the reply button on replies
-                    } else {
-                    console.error("Replies list not found in the parent comment element.", parentCommentElement);
+                        const replyButtonElement = replyButton as HTMLElement;
+                        replyButtonElement.style.display = 'none'; // Hide the reply button on replies
                     }
-                } else {
-                console.error(`Parent comment with id ${comment.parentId} not found.`, template);
                 }
+
             }
         }
     }
 
-    public toggleReplyForm(id: number): void {
-        const commentElement = document.querySelector(`.comment-template[data-id="${id}"]`) as HTMLDivElement | null;
+    toggleReplyForm(id: number): void {
+        const commentElement = document.querySelector(`.comment-template[data-id="${id}"]`) as HTMLElement;
         if (commentElement) {
-            const replyForm = commentElement.querySelector('.reply-form') as HTMLDivElement | null;
+            const replyForm = commentElement.querySelector('.reply-form') as HTMLElement;
             if (replyForm) {
                 replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
             }
@@ -207,17 +187,9 @@ export class CommentSystem {
             alert(`Comment with id ${id} not found.`);
         }
     }
-    
-    public adjustTextareaHeight(): void {
-        const textarea = document.getElementById('new-comment-text') as HTMLTextAreaElement | null;
-        if (!textarea) return;
-        textarea.style.height = 'auto';
-        textarea.style.height = `${textarea.scrollHeight}px`;
-    }
-    
 
-    public async reply(id: number): Promise<void> {
-        const commentElement = document.querySelector(`.comment-template[data-id="${id}"]`) as HTMLDivElement;
+    async reply(id: number): Promise<void> {
+        const commentElement = document.querySelector(`.comment-template[data-id="${id}"]`) as HTMLElement;
         if (!commentElement) {
             alert(`Comment with id ${id} not found.`);
             return;
@@ -239,131 +211,194 @@ export class CommentSystem {
         }
 
         const newReply = new Comment({
-            avatar: this.randomUser.picture?.thumbnail || '',
-            name: `${this.randomUser.name?.first || 'Неизвестный'} ${this.randomUser.name?.last || 'Пользователь'}`,
+            avatar: this.randomUser.picture.thumbnail,
+            name: `${this.randomUser.name.first} ${this.randomUser.name.last}`,
             text: replyText,
             date: new Date(),
             id: Date.now(),
+            parentId: id,
             votes: 0,
             favorites: false,
-            parentId: id,
             replyNumber: 0,
             voteColor: 'black'
         });
 
-        this.comments.push(newReply);
-        this.saveCommentsToStorage();
+        this.saveComment(newReply);
         replyTextElement.value = "";
-        this.updateCharCount();
-        this.adjustTextareaHeight();
         await this.refreshComments();
         await this.loadRandomUser();
     }
 
-    public updateCharCount(): void {
+    updateCharCount(): void {
         const commentTextElement = document.getElementById('new-comment-text') as HTMLTextAreaElement;
-        if (!commentTextElement) return;
         const charCount = commentTextElement.value.length;
-
         const charCountDisplay = document.getElementById('char-count');
         const charWarning = document.getElementById('char-warning');
-        const submitButton = document.querySelector('button.submit-button') as HTMLButtonElement;
+        const submitButton = document.getElementById('submit-comment') as HTMLButtonElement;
 
         if (charCountDisplay) {
-            charCountDisplay.textContent = `${charCount}/1000`;
+            charCountDisplay.textContent = `${charCount} / 1000`;
         }
 
         if (charCount > 1000) {
-            if (charWarning) charWarning.style.display = 'block';
-            if (submitButton) submitButton.disabled = true;
+            if (charWarning) {
+                charWarning.style.display = 'block';
+            }
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
         } else {
-            if (charWarning) charWarning.style.display = 'none';
-            if (submitButton) submitButton.disabled = false;
+            if (charWarning) {
+                charWarning.style.display = 'none';
+            }
+            if (submitButton) {
+                submitButton.style.background = '#ABD873';
+                submitButton.style.opacity = '1';
+                submitButton.disabled = false;
+            }
         }
     }
 
+    upVote(id: number): void {
+        const comment = this.comments.find(c => c.id === id);
 
-    public async sortComments(field: 'date' | 'votes', order: 'asc' | 'desc' = 'asc'): Promise<void> {
-        if (field === 'date') {
-            this.comments.sort((a, b) => order === 'asc' ? new Date(a.date).getTime() - new Date(b.date).getTime() : new Date(b.date).getTime() - new Date(a.date).getTime());
-        } else if (field === 'votes') {
-            this.comments.sort((a, b) => order === 'asc' ? a.votes - b.votes : b.votes - a.votes);
-        }
-        this.currentSort = { field, order };
-        await this.refreshComments();
-    }
-
-    public async upVote(id: number): Promise<void> {
-        const comment = this.comments.find(comment => comment.id === id);
         if (comment) {
-            comment.votes += 1;
-            comment.voteColor = comment.votes > 0 ? 'green' : comment.votes === 0 ? 'black' : 'red';
-            this.saveComment(comment);
-            await this.refreshComments();
+            comment.votes++;
+            comment.voteColor = comment.votes > 0 ? '#8AC540' : comment.votes < 0 ? '#FF0000' : 'black';
+            this.saveCommentsToStorage();
+            this.refreshComments();
         }
     }
 
-    public async downVote(id: number): Promise<void> {
-        const comment = this.comments.find(comment => comment.id === id);
+    downVote(id: number): void {
+        const comment = this.comments.find(c => c.id === id);
         if (comment) {
-            comment.votes -= 1;
-            comment.voteColor = comment.votes > 0 ? 'green' : comment.votes === 0 ? 'black' : 'red';
-            this.saveComment(comment);
-            await this.refreshComments();
+            comment.votes--;
+            comment.voteColor = comment.votes > 0 ? '#8AC540' : comment.votes < 0 ? '#FF0000' : 'black';
+            this.saveCommentsToStorage();
+            this.refreshComments();
         }
     }
 
-    public async toggleFavorite(id: number): Promise<void> {
-        const comment = this.comments.find(comment => comment.id === id);
+    toggleFavorite(id: number): void {
+        const comment = this.comments.find(c => c.id === id);
         if (comment) {
             comment.favorites = !comment.favorites;
-            this.saveComment(comment);
-            await this.refreshComments();
+            this.saveCommentsToStorage();
+            this.refreshComments();
         }
     }
 
-    public formatDate(date: Date): string {
-        const now = new Date();
-        const diffInSeconds = Math.floor((now.getTime() - new Date(date).getTime()) / 1000);
+    sortComments(field: string, order: 'asc' | 'desc'): void {
+        this.comments.sort((a, b) => {
+            if (field === 'date' || field === 'relevance') {
+                return order === 'asc' ? new Date(a.date).getTime() - new Date(b.date).getTime() : new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
+            if (field === 'rating') {
+                return order === 'asc' ? a.votes - b.votes : b.votes - a.votes;
+            }
+            if (field === 'replies') {
+                const repliesA = this.comments.filter(comment => comment.parentId === a.id).length;
+                const repliesB = this.comments.filter(comment => comment.parentId === b.id).length;
+                return order === 'asc' ? repliesA - repliesB : repliesB - repliesA;
+            }
+            return 0;
+        });
 
-        if (diffInSeconds < 60) {
-            return 'Только что';
-        } else if (diffInSeconds < 3600) {
-            const minutes = Math.floor(diffInSeconds / 60);
-            return `${minutes} мин. назад`;
-        } else if (diffInSeconds < 86400) {
-            const hours = Math.floor(diffInSeconds / 3600);
-            return `${hours} час. назад`;
-        } else {
-            return new Date(date).toLocaleDateString();
-        }
-    }
-
-    public async refreshComments(): Promise<void> {
-        await this.loadComments();
-        this.updateCommentCount();
-    }
-
-    public filterComments(filter: 'favorites' | 'high-rating' | 'low-rating' | 'all'): void {
-        const comments = JSON.parse(localStorage.getItem('comments') || '[]');
-        let filteredComments;
-
-        switch (filter) {
-            case 'favorites':
-                filteredComments = comments.filter((comment: Comment) => comment.favorites);
-                break;
-            case 'high-rating':
-                filteredComments = comments.filter((comment: Comment) => comment.votes > 0);
-                break;
-            case 'low-rating':
-                filteredComments = comments.filter((comment: Comment) => comment.votes < 0);
-                break;
-            default:
-                filteredComments = comments;
-                break;
-        }
-
-        this.comments = filteredComments.map((comment: any) => new Comment(comment));
         this.refreshComments();
     }
+
+    filterFavorites(): void {
+        const favorites = this.comments.filter(comment => comment.favorites);
+        document.getElementById('comments-list')!.innerHTML = '';
+        favorites.forEach(comment => this.displayComment(comment));
+    }
+
+    async refreshComments(): Promise<void> {
+        document.getElementById('comments-list')!.innerHTML = '';
+        const parentComments = this.comments.filter(comment => comment.parentId === null);
+        const replies = this.comments.filter(comment => comment.parentId !== null);
+
+        parentComments.forEach(parent => {
+            this.displayComment(parent);
+            const childComments = replies.filter(reply => reply.parentId === parent.id);
+            childComments.forEach(reply => this.displayComment(reply));
+        });
+    }
+
+    formatDate(date: Date | string): string {
+        const d = new Date(date);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0'); // Месяцы начинаются с 0
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${day}.${month} ${hours}:${minutes}`;
+    }
+
+    addSortEventListeners(): void {
+        const selectedOptionElement = document.getElementById('selected-option');
+        const optionsContainer = document.getElementById('options');
+        const options = document.querySelectorAll('.option');
+        const sortButtonElement = document.querySelector('.sort-button');
+        const favoritesToggleElement = document.getElementById('favorites-toggle');
+
+        if (selectedOptionElement && optionsContainer && options.length) {
+            selectedOptionElement.addEventListener('click', () => {
+                optionsContainer.style.display = optionsContainer.style.display === 'block' ? 'none' : 'block';
+            });
+
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    const selectedValue = option.getAttribute('data-value');
+                    if (selectedOptionElement && selectedValue) {
+                        selectedOptionElement.textContent = option.textContent;
+                        optionsContainer.style.display = 'none';
+                        this.currentSort.field = selectedValue;
+                        this.sortComments(this.currentSort.field, this.currentSort.order);
+                        options.forEach(opt => opt.classList.remove('selected'));
+                        option.classList.add('selected');
+                    }
+                });
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!document.querySelector('.dropdown')!.contains(event.target as Node)) {
+                    optionsContainer.style.display = 'none';
+                }
+            });
+        } else {
+            console.error("Dropdown elements not found.");
+        }
+
+        if (sortButtonElement) {
+            sortButtonElement.addEventListener('click', () => {
+                if (sortButtonElement.classList.contains('asc')) {
+                    this.currentSort.order = 'asc';
+                    this.sortComments(this.currentSort.field, this.currentSort.order);
+                    sortButtonElement.classList.remove('asc');
+                    sortButtonElement.classList.add('desc');
+                } else {
+                    this.currentSort.order = 'desc';
+                    this.sortComments(this.currentSort.field, this.currentSort.order);
+                    sortButtonElement.classList.remove('desc');
+                    sortButtonElement.classList.add('asc');
+                }
+            });
+        } else {
+            console.error("Element '.sort-button' not found.");
+        }
+
+        if (favoritesToggleElement) {
+            favoritesToggleElement.addEventListener('click', () => this.filterFavorites());
+        } else {
+            console.error("Element 'favorites-toggle' not found.");
+        }
+    }
+
+    adjustTextareaHeight(): void {
+        const textarea = document.getElementById('new-comment-text') as HTMLTextAreaElement;
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
+    }
 }
+

@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Comment = void 0;
-class Comment {
+export class Comment {
     constructor({ avatar, name, text, date, id, votes, favorites, parentId, replyNumber, voteColor = 'black', }) {
         this.avatar = avatar;
         this.name = name;
@@ -15,4 +12,3 @@ class Comment {
         this.voteColor = voteColor;
     }
 }
-exports.Comment = Comment;
